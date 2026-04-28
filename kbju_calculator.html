@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Калькулятор калорий</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Unbounded:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#080808;--s1:#111;--s2:#181818;--s3:#202020;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--a1:#F5A623;--a2:#FF6B35;--grad:linear-gradient(135deg,#F5A623,#FF6B35);--text:#fff;--t2:rgba(255,255,255,0.6);--t3:rgba(255,255,255,0.25);--green:#4ECDC4;--blue:#6B9FFF;--red:#FF6B6B;--r:16px;--r2:12px}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+  .blob{position:fixed;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(245,166,35,.1) 0%,transparent 70%);top:-100px;right:-80px;pointer-events:none;z-index:0;animation:bP 7s ease-in-out infinite}
+  @keyframes bP{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+  .header{position:relative;z-index:1;padding:24px 22px 0}
+  .h-eye{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .h-dot{width:6px;height:6px;border-radius:50%;background:var(--grad);box-shadow:0 0 8px var(--a1)}
+  .h-lbl{font-size:10px;letter-spacing:3px;color:var(--a1);font-weight:600;text-transform:uppercase}
+  .h-title{font-family:'Unbounded',sans-serif;font-size:24px;font-weight:900;line-height:1.2;background:linear-gradient(135deg,#fff 30%,rgba(255,255,255,.5));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .h-title span{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .h-sub{font-size:12px;color:var(--t2);margin-top:5px}
+  .hline{height:1px;background:linear-gradient(90deg,var(--a1),transparent);margin:16px 22px 0;opacity:.25}
+  .screen{display:none;padding:18px 22px 110px;position:relative;z-index:1}
+  .screen.active{display:block}
+  .slabel{font-size:10px;font-weight:700;letter-spacing:2.5px;color:var(--t3);text-transform:uppercase;margin-bottom:10px;margin-top:22px}
+  .slabel:first-child{margin-top:0}
+  .toggle-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:5px}
+  .tbtn{background:transparent;border:none;border-radius:11px;padding:13px 10px;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;color:var(--t2);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .tbtn .em{font-size:18px}
+  .tbtn.active{background:var(--s3);color:var(--text);box-shadow:0 2px 12px rgba(0,0,0,.4)}
+  .tbtn.active .lbl{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .inp-wrap{position:relative}
+  .inp{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:15px 18px;padding-right:52px;font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:500;color:var(--text);width:100%;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none}
+  .inp::placeholder{color:var(--t3);font-size:20px}
+  .inp:focus{border-color:var(--a1);box-shadow:0 0 0 3px rgba(245,166,35,.1)}
+  .inp-unit{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:var(--t3);letter-spacing:1px;pointer-events:none}
+  .err{font-size:11px;color:var(--red);margin-top:5px;display:none;padding-left:4px}
+  .err.show{display:block}
+  .act-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .abtn{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:15px 12px;font-family:'Space Grotesk',sans-serif;color:var(--t2);cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+  .abtn .ai{font-size:22px} .abtn .an{color:var(--t2);font-size:13px;font-weight:600}
+  .abtn .ad{color:var(--t3);font-size:10px;margin-top:-2px}
+  .abtn.active{background:var(--s2);border-color:var(--a1);box-shadow:0 0 0 1px rgba(245,166,35,.12)}
+  .abtn.active .an{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .goal-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .gbtn{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:16px 8px;font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:600;color:var(--t2);cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+  .gbtn .gi{font-size:24px}
+  .gbtn.active{background:var(--s2);border-color:var(--a1);box-shadow:0 0 0 1px rgba(245,166,35,.12)}
+  .gbtn.active .gn{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .bbar{position:fixed;bottom:0;left:0;right:0;padding:12px 22px 32px;background:linear-gradient(to top,var(--bg) 65%,transparent);z-index:100}
+  .cta{width:100%;background:var(--grad);border:none;border-radius:var(--r);padding:18px;font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;letter-spacing:.5px;transition:all .2s;box-shadow:0 8px 32px rgba(245,166,35,.3);position:relative;overflow:hidden}
+  .cta::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15) 0%,transparent 60%)}
+  .cta:active{transform:scale(.98)}
+  .back{width:100%;background:transparent;border:1px solid var(--border2);border-radius:var(--r);padding:13px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;margin-bottom:8px;display:none}
+  .hero{background:var(--s1);border:1px solid var(--border);border-radius:20px;padding:22px;text-align:center;position:relative;overflow:hidden;margin-bottom:12px}
+  .hero::before{content:'';position:absolute;top:-50px;left:50%;transform:translateX(-50%);width:220px;height:220px;background:radial-gradient(circle,rgba(245,166,35,.13) 0%,transparent 70%);pointer-events:none}
+  .kcal-num{font-family:'Unbounded',sans-serif;font-size:60px;font-weight:900;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;letter-spacing:-2px}
+  .kcal-lbl{font-size:10px;letter-spacing:3px;color:var(--t2);text-transform:uppercase;margin-top:4px}
+  .pill{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.25);border-radius:20px;padding:5px 14px;font-size:11px;font-weight:700;color:var(--a1);letter-spacing:.5px;text-transform:uppercase}
+  .pill::before{content:'●';font-size:6px}
+  .mstrip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+  .mc{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px 10px;text-align:center}
+  .mv{font-family:'Unbounded',sans-serif;font-size:24px;font-weight:700;line-height:1}
+  .mg{font-size:10px;color:var(--t3);margin-top:3px} .mn{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);margin-top:7px;font-weight:700}
+  .mc.p .mv{color:var(--a2)} .mc.f .mv{color:var(--green)} .mc.c .mv{color:var(--blue)}
+  .mbars{margin-bottom:14px}
+  .mb{margin-bottom:10px}
+  .mb-lbl{display:flex;justify-content:space-between;margin-bottom:5px;font-size:11px}
+  .mb-lbl span:first-child{color:var(--t2);font-weight:600} .mb-lbl span:last-child{color:var(--t3)}
+  .mb-track{height:5px;background:var(--s2);border-radius:3px;overflow:hidden}
+  .mb-fill{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.4,0,.2,1);width:0}
+  .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+  .sc{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);padding:14px}
+  .sc-l{font-size:9px;letter-spacing:2px;color:var(--t3);text-transform:uppercase;font-weight:700;margin-bottom:5px}
+  .sc-v{font-family:'Unbounded',sans-serif;font-size:19px;font-weight:700;color:var(--text);letter-spacing:-.5px}
+  .sc-s{font-size:10px;color:var(--t3);margin-top:3px}
+  .tabs{display:flex;gap:6px;margin-bottom:14px;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:5px}
+  .tab{flex:1;background:transparent;border:none;border-radius:11px;padding:10px 4px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;color:var(--t3);cursor:pointer;transition:all .2s;text-align:center}
+  .tab.active{background:var(--s3);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+  .tab.active span{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .tpanel{display:none} .tpanel.active{display:block}
+  .tip-row{background:var(--s1);border:1px solid var(--border);border-left:2px solid var(--a1);border-radius:0 var(--r2) var(--r2) 0;padding:11px 13px;margin-bottom:7px;font-size:12.5px;color:var(--t2);line-height:1.6}
+  .tip-row strong{color:var(--text)}
+  .day-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:8px}
+  .day-title{font-family:'Unbounded',sans-serif;font-size:10px;font-weight:700;color:var(--a1);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
+  .mrow{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+  .mrow:last-child{border-bottom:none;padding-bottom:0}
+  .mem{font-size:18px;flex-shrink:0;padding-top:1px} .minfo{flex:1}
+  .mname{font-size:12px;font-weight:600;color:var(--text)}
+  .mdesc{font-size:11px;color:var(--t3);margin-top:2px;line-height:1.5}
+  .mkcal{font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;flex-shrink:0}
+  .wcard{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:8px}
+  .wday{font-family:'Unbounded',sans-serif;font-size:10px;color:var(--a1);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+  .erow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+  .erow:last-child{border-bottom:none;padding-bottom:0}
+  .enum{font-family:'Unbounded',sans-serif;font-size:11px;color:var(--t3);width:18px;flex-shrink:0}
+  .ename{flex:1;font-size:12.5px;font-weight:600;color:var(--text)}
+  .enote{font-size:10px;color:var(--t3);margin-top:1px}
+  .esets{font-size:11px;color:var(--t3);flex-shrink:0}
+  .divider{height:1px;background:var(--border);margin:16px 0}
+  .prog-desc{background:var(--s1);border:1px solid var(--border);border-left:2px solid var(--a1);border-radius:0 var(--r2) var(--r2) 0;padding:11px 13px;margin-bottom:12px;font-size:12.5px;color:var(--t2);line-height:1.6}
+  .prog-desc strong{color:var(--text)}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+  .fu{animation:fadeUp .38s ease both}
+  .d1{animation-delay:.05s}.d2{animation-delay:.1s}.d3{animation-delay:.15s}.d4{animation-delay:.2s}
+  .shake{animation:shake .35s ease}
+</style>
+</head>
+<body>
+<div class="blob"></div>
+<div class="header">
+  <div class="h-eye"><div class="h-dot"></div><div class="h-lbl">Персональный расчёт</div></div>
+  <div class="h-title">Калькулятор<br><span>калорий</span></div>
+  <div class="h-sub">Узнай свою норму КБЖУ за 30 секунд</div>
+</div>
+<div class="hline"></div>
+
+<!-- FORM -->
+<div class="screen active" id="s-form">
+  <div class="slabel">Пол</div>
+  <div class="toggle-row fu">
+    <button class="tbtn active" id="bm" onclick="setG('male')"><span class="em">🧑</span><span class="lbl">Мужчина</span></button>
+    <button class="tbtn" id="bf" onclick="setG('female')"><span class="em">👩</span><span class="lbl">Женщина</span></button>
+  </div>
+  <div class="slabel">Возраст</div>
+  <div class="inp-wrap fu d1"><input class="inp" id="fa" type="number" inputmode="numeric" placeholder="25" min="10" max="100"><span class="inp-unit">ЛЕТ</span></div>
+  <div class="err" id="ea">Введи возраст от 10 до 100 лет</div>
+  <div class="slabel">Рост</div>
+  <div class="inp-wrap fu d2"><input class="inp" id="fh" type="number" inputmode="numeric" placeholder="175" min="100" max="250"><span class="inp-unit">СМ</span></div>
+  <div class="err" id="eh">Введи рост от 100 до 250 см</div>
+  <div class="slabel">Вес</div>
+  <div class="inp-wrap fu d3"><input class="inp" id="fw" type="number" inputmode="numeric" placeholder="70" min="30" max="300"><span class="inp-unit">КГ</span></div>
+  <div class="err" id="ew">Введи вес от 30 до 300 кг</div>
+  <div class="slabel">Уровень активности</div>
+  <div class="act-grid fu d4">
+    <button class="abtn" id="a1" onclick="setA(1)"><span class="ai">🛋️</span><span class="an">Минимальная</span><span class="ad">Сидячий образ жизни</span></button>
+    <button class="abtn" id="a2" onclick="setA(2)"><span class="ai">🚶</span><span class="an">Лёгкая</span><span class="ad">1–2 тренировки/нед</span></button>
+    <button class="abtn active" id="a3" onclick="setA(3)"><span class="ai">🏃</span><span class="an">Умеренная</span><span class="ad">3–5 тренировок/нед</span></button>
+    <button class="abtn" id="a4" onclick="setA(4)"><span class="ai">💪</span><span class="an">Высокая</span><span class="ad">Зал каждый день</span></button>
+  </div>
+  <div class="slabel">Твоя цель</div>
+  <div class="goal-grid fu d4">
+    <button class="gbtn" id="gl" onclick="setGoal('loss')"><span class="gi">📉</span><span class="gn">Похудение</span></button>
+    <button class="gbtn active" id="gk" onclick="setGoal('keep')"><span class="gi">⚖️</span><span class="gn">Поддержание</span></button>
+    <button class="gbtn" id="gg" onclick="setGoal('gain')"><span class="gi">💪</span><span class="gn">Набор массы</span></button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="s-result">
+  <div class="hero fu">
+    <div class="kcal-num" id="rk">—</div>
+    <div class="kcal-lbl">калорий в день</div>
+    <div class="pill" id="rp">—</div>
+  </div>
+  <div class="mstrip fu d1">
+    <div class="mc p"><div class="mv" id="rpr">—</div><div class="mg">г</div><div class="mn">Белки</div></div>
+    <div class="mc f"><div class="mv" id="rfa">—</div><div class="mg">г</div><div class="mn">Жиры</div></div>
+    <div class="mc c"><div class="mv" id="rca">—</div><div class="mg">г</div><div class="mn">Углеводы</div></div>
+  </div>
+  <div class="mbars fu d2" id="rbars"></div>
+  <div class="sgrid fu d2">
+    <div class="sc"><div class="sc-l">Базовый обмен</div><div class="sc-v" id="rbmr">—</div><div class="sc-s">ккал (BMR)</div></div>
+    <div class="sc"><div class="sc-l">С активностью</div><div class="sc-v" id="rtdee">—</div><div class="sc-s">ккал (TDEE)</div></div>
+    <div class="sc"><div class="sc-l">Индекс массы тела</div><div class="sc-v" id="rbmi">—</div><div class="sc-s" id="rbmis">—</div></div>
+    <div class="sc"><div class="sc-l">Вода в день</div><div class="sc-v" id="rw">—</div><div class="sc-s">литров</div></div>
+  </div>
+  <div class="divider"></div>
+  <div class="tabs fu d3">
+    <button class="tab active" onclick="sTab('tips')" id="tt"><span>💡 Советы</span></button>
+    <button class="tab" onclick="sTab('meals')" id="tm"><span>🍽️ Питание</span></button>
+    <button class="tab" onclick="sTab('workout')" id="tw"><span>💪 Тренировки</span></button>
+  </div>
+  <div class="tpanel active" id="pt"><div id="tc"></div></div>
+  <div class="tpanel" id="pm"><div id="mc2"></div></div>
+  <div class="tpanel" id="pw"><div id="wc"></div></div>
+</div>
+
+<div class="bbar">
+  <button class="back" id="bb" onclick="goBack()">← Изменить параметры</button>
+  <button class="cta" id="cb" onclick="calc()">РАССЧИТАТЬ</button>
+</div>
+
+<script>
+if(window.Telegram?.WebApp){Telegram.WebApp.ready();Telegram.WebApp.expand();}
+let gender='male',act=3,goal='keep',ud={};
+
+function setG(g){gender=g;document.getElementById('bm').classList.toggle('active',g==='male');document.getElementById('bf').classList.toggle('active',g==='female')}
+function setA(a){act=a;[1,2,3,4].forEach(i=>document.getElementById('a'+i).classList.toggle('active',i===a))}
+function setGoal(g){goal=g;['l','k','g'].forEach((s,i)=>document.getElementById('g'+s).classList.toggle('active',['loss','keep','gain'][i]===g))}
+function sTab(t){['tips','meals','workout'].forEach(id=>{document.getElementById('t'+id[0]).classList.toggle('active',id===t);document.getElementById('p'+id[0]).classList.toggle('active',id===t)})}
+
+function validate(){
+  let ok=true;
+  [{id:'fa',err:'ea',min:10,max:100},{id:'fh',err:'eh',min:100,max:250},{id:'fw',err:'ew',min:30,max:300}]
+  .forEach(({id,err,min,max})=>{
+    const v=parseInt(document.getElementById(id).value),el=document.getElementById(id);
+    document.getElementById(err).classList.remove('show');
+    if(!v||v<min||v>max){document.getElementById(err).classList.add('show');el.classList.add('shake');setTimeout(()=>el.classList.remove('shake'),350);ok=false;}
+  });
+  return ok;
+}
+
+function calc(){
+  if(!validate())return;
+  const age=parseInt(document.getElementById('fa').value);
+  const height=parseInt(document.getElementById('fh').value);
+  const weight=parseInt(document.getElementById('fw').value);
+
+  // BMR — Mifflin-St Jeor
+  const bmr=Math.round(gender==='male'
+    ? 10*weight+6.25*height-5*age+5
+    : 10*weight+6.25*height-5*age-161);
+
+  const mults={1:1.2,2:1.375,3:1.55,4:1.725};
+  const tdee=Math.round(bmr*mults[act]);
+
+  // Профицит/дефицит — % от TDEE
+  const delta={loss:Math.round(tdee*-0.15),keep:0,gain:Math.round(tdee*0.10)};
+  const kcal=tdee+delta[goal];
+
+  // Макросы под цель
+  const pr=Math.round(weight*(goal==='loss'?2.4:goal==='gain'?2.0:1.8));
+  const fa2=Math.round(weight*(goal==='loss'?0.8:goal==='gain'?1.1:1.0));
+  const ca=Math.max(50,Math.round((kcal-pr*4-fa2*9)/4));
+
+  const bmi=(weight/(height/100)**2).toFixed(1);
+  const bmil=bmi<18.5?'Дефицит веса':bmi<25?'Норма ✓':bmi<30?'Избыточный вес':bmi<35?'Ожирение I':'Ожирение II';
+  const water=(weight*0.035+(act>=3?0.5:0)).toFixed(1);
+
+  const gnames={loss:'Сжигание жира',keep:'Поддержание веса',gain:'Набор мышечной массы'};
+
+  ud={age,height,weight,gender,act,goal,bmr,tdee,kcal,protein:pr,fat:fa2,carbs:ca,bmi:parseFloat(bmi),bmil,water:parseFloat(water),delta:delta[goal]};
+
+  document.getElementById('rk').textContent=kcal.toLocaleString('ru');
+  document.getElementById('rp').textContent=gnames[goal];
+  document.getElementById('rpr').textContent=pr;
+  document.getElementById('rfa').textContent=fa2;
+  document.getElementById('rca').textContent=ca;
+  document.getElementById('rbmr').textContent=bmr.toLocaleString('ru');
+  document.getElementById('rtdee').textContent=tdee.toLocaleString('ru');
+  document.getElementById('rbmi').textContent=bmi;
+  document.getElementById('rbmis').textContent=bmil;
+  document.getElementById('rw').textContent=water;
+
+  const tk=pr*4+fa2*9+ca*4;
+  document.getElementById('rbars').innerHTML=[
+    {n:'Белки',v:pr,k:pr*4,c:'var(--a2)'},{n:'Жиры',v:fa2,k:fa2*9,c:'var(--green)'},{n:'Углеводы',v:ca,k:ca*4,c:'var(--blue)'}
+  ].map(m=>`<div class="mb"><div class="mb-lbl"><span>${m.n} — ${m.v} г</span><span>${Math.round(m.k/tk*100)}%</span></div><div class="mb-track"><div class="mb-fill" style="background:${m.c}" data-w="${Math.round(m.k/tk*100)}"></div></div></div>`).join('');
+  setTimeout(()=>document.querySelectorAll('.mb-fill').forEach(el=>el.style.width=el.dataset.w+'%'),200);
+
+  document.getElementById('s-form').classList.remove('active');
+  document.getElementById('s-result').classList.add('active');
+  document.getElementById('bb').style.display='block';
+  document.getElementById('cb').textContent='ПЕРЕСЧИТАТЬ';
+  document.getElementById('cb').onclick=goBack;
+  window.scrollTo(0,0);
+  if(window.Telegram?.WebApp?.HapticFeedback)Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+
+  renderTips();
+  renderMeals();
+  renderWorkout();
+}
+
+function goBack(){
+  document.getElementById('s-result').classList.remove('active');
+  document.getElementById('s-form').classList.add('active');
+  document.getElementById('bb').style.display='none';
+  document.getElementById('cb').textContent='РАССЧИТАТЬ';
+  document.getElementById('cb').onclick=calc;
+  window.scrollTo(0,0);
+}
+
+// ══════════════════════════════════════════════
+// СОВЕТЫ — алгоритмическая генерация
+// ══════════════════════════════════════════════
+function renderTips(){
+  const u=ud;
+  const tips=[];
+
+  // 1. Калории / дефицит / профицит
+  if(u.goal==='loss'){
+    const weekLoss=(Math.abs(u.delta)*7/7700).toFixed(2);
+    tips.push({icon:'🔥',title:'Твой дефицит калорий',text:`Ты потребляешь на ${Math.abs(u.delta)} ккал меньше нормы (${u.tdee} ккал). При таком дефиците ты будешь терять примерно ${weekLoss} кг жира в неделю — это безопасный темп.`});
+  } else if(u.goal==='gain'){
+    tips.push({icon:'💪',title:'Твой профицит калорий',text:`Ты потребляешь на ${u.delta} ккал больше нормы (${u.tdee} ккал). Это ~10% профицит — оптимально для набора мышц с минимальным жиром. Целевой прирост: 0.5–1 кг в месяц.`});
+  } else {
+    tips.push({icon:'⚖️',title:'Поддержание веса',text:`Твоя норма ${u.kcal} ккал/день. Отклонение ±100–150 ккал — это нормально. Главное — не выходить за пределы систематически.`});
+  }
+
+  // 2. Белок — персонально
+  const perMeal=Math.round(u.protein/5);
+  tips.push({icon:'🥩',title:'Белок в каждый приём',text:`Твоя норма — ${u.protein} г белка в день (${(u.protein/u.weight).toFixed(1)} г/кг). Распредели по 5 приёмам: ~${perMeal}–${perMeal+5} г за раз. Источники: куриная грудка, яйца, творог, рыба, протеин.`});
+
+  // 3. Вода — персонально
+  const waterExtra=act>=3?' В дни тренировок добавляй ещё 500 мл.':'';
+  tips.push({icon:'💧',title:'Норма воды',text:`Тебе нужно ${u.water} л воды в день.${waterExtra} Начинай утро со стакана воды натощак — это ускоряет метаболизм.`});
+
+  // 4. ИМТ-совет
+  if(u.bmi<18.5){
+    tips.push({icon:'⚠️',title:'Дефицит веса (ИМТ '+u.bmi+')',text:'Твой ИМТ ниже нормы. Приоритет — калорийное питание с высоким содержанием белка. Силовые тренировки помогут набрать мышечную массу.'});
+  } else if(u.bmi<25){
+    tips.push({icon:'✅',title:'Нормальный ИМТ ('+u.bmi+')',text:'Отличная отправная точка! Фокусируйся на качестве питания, а не только на калориях. Регулярные тренировки помогут улучшить состав тела.'});
+  } else if(u.bmi<30){
+    tips.push({icon:'📊',title:'Избыточный вес (ИМТ '+u.bmi+')',text:'Умеренный дефицит калорий (как у тебя настроен) — правильная стратегия. Не торопись: быстрое похудение приводит к потере мышц. Силовые тренировки обязательны.'});
+  } else {
+    tips.push({icon:'⚕️',title:'ИМТ '+u.bmi,text:'Рекомендуем проконсультироваться с врачом перед началом программы. Умеренный дефицит и ходьба 8–10 тыс. шагов в день — безопасный старт.'});
+  }
+
+  // 5. Активность
+  const actTips={
+    1:{icon:'🚶',title:'Начни двигаться',text:'При минимальной активности даже 20–30 минут ходьбы в день значительно ускорят прогресс. Начни с прогулок и постепенно переходи к тренировкам.'},
+    2:{icon:'📈',title:'Прогрессируй постепенно',text:'Лёгкая активность — хорошая база. Попробуй добавить 1 силовую тренировку в неделю — это ускорит результат и защитит мышцы.'},
+    3:{icon:'💯',title:'Оптимальный уровень активности',text:'3–5 тренировок в неделю — золотой стандарт. Следи за восстановлением: 1–2 дня отдыха критически важны для прогресса.'},
+    4:{icon:'🏆',title:'Высокая нагрузка',text:'Зал каждый день — это серьёзно. Убедись, что чередуешь группы мышц и выделяешь время на восстановление. Сон 7–8 часов обязателен.'},
+  };
+  const at=actTips[u.act];
+  tips.push({icon:at.icon,title:at.title,text:at.text});
+
+  // 6. Возрастной совет
+  if(u.age<25){
+    tips.push({icon:'🌱',title:'Молодой возраст — преимущество',text:'В твоём возрасте метаболизм и восстановление на пике. Самое время заложить базу: освоить технику упражнений и правильное питание.'});
+  } else if(u.age<35){
+    tips.push({icon:'⚡',title:'Пик физической формы',text:'Этот возраст — лучшее время для достижения результатов. Прогрессия нагрузок и стабильность питания дадут максимальный эффект.'});
+  } else if(u.age<50){
+    tips.push({icon:'🎯',title:'Важность восстановления',text:'После 35 лет восстановление занимает больше времени. Приоритизируй сон (8 ч), растяжку после тренировок и достаточное потребление белка для сохранения мышц.'});
+  } else {
+    tips.push({icon:'💎',title:'Питание и долголетие',text:'После 50 лет особенно важен белок (не менее 1.8 г/кг) для предотвращения саркопении. Силовые тренировки — лучший способ сохранить мышечную массу и метаболизм.'});
+  }
+
+  document.getElementById('tc').innerHTML=tips.map(t=>`<div class="tip-row"><strong>${t.icon} ${t.title}:</strong> ${t.text}</div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// ПИТАНИЕ — 7 дней, персональные меню
+// ══════════════════════════════════════════════
+function renderMeals(){
+  const u=ud;
+  const k=u.kcal;
+
+  // Шаблоны завтраков
+  const breakfasts=[
+    {em:'🌅',name:'Завтрак',desc:`Овсянка на молоке 100г + 3 яйца + банан`,kcal:Math.round(k*0.22)},
+    {em:'🌅',name:'Завтрак',desc:`Омлет из 3 яиц + цельнозерновой тост + авокадо`,kcal:Math.round(k*0.22)},
+    {em:'🌅',name:'Завтрак',desc:`Гречневая каша + куриная грудка 150г + огурец`,kcal:Math.round(k*0.22)},
+    {em:'🌅',name:'Завтрак',desc:`Творог 5% 200г + банан + мёд + орехи 20г`,kcal:Math.round(k*0.22)},
+    {em:'🌅',name:'Завтрак',desc:`Крим оф Райс 80г + яйца 3шт + молоко 200мл`,kcal:Math.round(k*0.22)},
+    {em:'🌅',name:'Завтрак',desc:`Овсянка 100г + протеиновый коктейль + фрукт`,kcal:Math.round(k*0.22)},
+    {em:'🌅',name:'Завтрак',desc:`Сырники из творога 200г + сметана 10% + ягоды`,kcal:Math.round(k*0.22)},
+  ];
+  const snacks=[
+    {em:'🥪',name:'Перекус',desc:`Греческий йогурт 5% 200г + горсть орехов 25г`,kcal:Math.round(k*0.12)},
+    {em:'🥪',name:'Перекус',desc:`Творог 5% 150г + банан`,kcal:Math.round(k*0.12)},
+    {em:'🥪',name:'Перекус',desc:`Рисовые вафли 40г + арахисовая паста 20г`,kcal:Math.round(k*0.12)},
+    {em:'🥪',name:'Перекус',desc:`Кефир 1% 300мл + яблоко`,kcal:Math.round(k*0.12)},
+    {em:'🥪',name:'Перекус',desc:`Творог 9% 150г + мёд + миндаль 20г`,kcal:Math.round(k*0.12)},
+    {em:'🥪',name:'Перекус',desc:`Яйца варёные 2шт + огурец + хлебцы`,kcal:Math.round(k*0.12)},
+    {em:'🥪',name:'Перекус',desc:`Протеиновый коктейль + банан`,kcal:Math.round(k*0.12)},
+  ];
+  const lunches=[
+    {em:'🍽️',name:'Обед',desc:`Куриная грудка 250г + рис белый 100г (сух.) + брокколи`,kcal:Math.round(k*0.28)},
+    {em:'🍽️',name:'Обед',desc:`Лосось запечённый 200г + гречка 80г (сух.) + овощной салат`,kcal:Math.round(k*0.28)},
+    {em:'🍽️',name:'Обед',desc:`Говядина 200г + макароны тв. пшеницы 90г + помидоры`,kcal:Math.round(k*0.28)},
+    {em:'🍽️',name:'Обед',desc:`Индейка 220г + рис бурый 100г + тушёные овощи`,kcal:Math.round(k*0.28)},
+    {em:'🍽️',name:'Обед',desc:`Тунец в соку 200г + картофель запечённый 200г + зелень`,kcal:Math.round(k*0.28)},
+    {em:'🍽️',name:'Обед',desc:`Куриные котлеты 250г + гречка 80г + огурец`,kcal:Math.round(k*0.28)},
+    {em:'🍽️',name:'Обед',desc:`Рыбный суп + куриная грудка 200г + рис 80г`,kcal:Math.round(k*0.28)},
+  ];
+  const dinners=[
+    {em:'🍖',name:'Ужин',desc:`Говядина 200г + гречка 80г (сух.) + салат из свежих овощей`,kcal:Math.round(k*0.22)},
+    {em:'🍖',name:'Ужин',desc:`Куриная грудка 250г + запечённые овощи 200г + оливковое масло`,kcal:Math.round(k*0.22)},
+    {em:'🍖',name:'Ужин',desc:`Лосось 200г + спаржа 150г + авокадо ½шт`,kcal:Math.round(k*0.22)},
+    {em:'🍖',name:'Ужин',desc:`Индейка 220г + рис 80г + брокколи на пару`,kcal:Math.round(k*0.22)},
+    {em:'🍖',name:'Ужин',desc:`Тунец в соку 200г + яйца 2шт + овощной салат`,kcal:Math.round(k*0.22)},
+    {em:'🍖',name:'Ужин',desc:`Куриное бедро без кожи 250г + гречка 80г + помидоры`,kcal:Math.round(k*0.22)},
+    {em:'🍖',name:'Ужин',desc:`Говяжий фарш 200г + макароны тв. пшеницы 80г + томатный соус`,kcal:Math.round(k*0.22)},
+  ];
+  const bedtime=[
+    {em:'🌙',name:'Перед сном',desc:`Творог 9% 200г + арахисовая паста 15г`,kcal:Math.round(k*0.12)},
+    {em:'🌙',name:'Перед сном',desc:`Казеиновый протеин 30г + молоко 200мл`,kcal:Math.round(k*0.12)},
+    {em:'🌙',name:'Перед сном',desc:`Творог 5% 200г + грецкие орехи 20г`,kcal:Math.round(k*0.12)},
+    {em:'🌙',name:'Перед сном',desc:`Кефир 1% 300мл + творог 150г`,kcal:Math.round(k*0.12)},
+    {em:'🌙',name:'Перед сном',desc:`Творог 9% 200г + мёд 10г + кешью 15г`,kcal:Math.round(k*0.12)},
+    {em:'🌙',name:'Перед сном',desc:`Протеиновый пудинг из творога 200г + ягоды`,kcal:Math.round(k*0.12)},
+    {em:'🌙',name:'Перед сном',desc:`Творог 5% 150г + греческий йогурт 100г`,kcal:Math.round(k*0.12)},
+  ];
+
+  // Для набора — 6 приёмов (добавляем приём после тренировки)
+  const postWorkout={em:'💪',name:'После тренировки',desc:`Протеин 40г + молоко 300мл + банан`,kcal:Math.round(k*0.10)};
+
+  const dayNames=['День 1 — Понедельник','День 2 — Вторник','День 3 — Среда','День 4 — Четверг','День 5 — Пятница','День 6 — Суббота','День 7 — Воскресенье'];
+
+  const html=dayNames.map((dayName,i)=>{
+    let meals;
+    if(u.goal==='gain'){
+      const b=breakfasts[i],pw=postWorkout,l=lunches[i],s=snacks[i],d=dinners[i],bt=bedtime[i];
+      // Пересчёт с 6 приёмами
+      const total=b.kcal+pw.kcal+l.kcal+s.kcal+d.kcal+bt.kcal;
+      meals=[b,pw,l,s,d,bt];
+    } else {
+      meals=[breakfasts[i],snacks[i],lunches[i],{...dinners[i],kcal:Math.round(k*0.24)},bedtime[i]];
+    }
+    const total=meals.reduce((s,m)=>s+m.kcal,0);
+
+    return `<div class="day-card">
+      <div class="day-title">${dayName}</div>
+      ${meals.map(m=>`<div class="mrow"><span class="mem">${m.em}</span><div class="minfo"><div class="mname">${m.name}</div><div class="mdesc">${m.desc}</div></div><div class="mkcal">${m.kcal}</div></div>`).join('')}
+    </div>`;
+  }).join('');
+
+  document.getElementById('mc2').innerHTML=html;
+}
+
+// ══════════════════════════════════════════════
+// ТРЕНИРОВКИ — персональная программа
+// ══════════════════════════════════════════════
+function renderWorkout(){
+  const u=ud;
+
+  // Программы под цель и активность
+  let desc='';
+  let days=[];
+
+  if(u.goal==='loss'){
+    desc=`Программа на сжигание жира: сочетание силовых и кардио. Акцент на многосуставных упражнениях для максимального расхода калорий.`;
+    if(u.act<=2){
+      // Начинающий уровень
+      days=[
+        {day:'День 1',type:'Всё тело',ex:[{n:'Приседания с весом тела',s:'3×15',note:'Спина прямая, колени не выходят за носки'},{n:'Отжимания',s:'3×10',note:'Можно с колен на начальном этапе'},{n:'Планка',s:'3×30 сек',note:'Тело — прямая линия'},{n:'Ходьба на месте',s:'20 мин',note:'Пульс 110–120 уд/мин'}]},
+        {day:'День 2',type:'Отдых / Ходьба',ex:[]},
+        {day:'День 3',type:'Кардио + Пресс',ex:[{n:'Быстрая ходьба / эллипс',s:'30 мин',note:'Умеренный темп, можно разговаривать'},{n:'Скручивания',s:'3×20',note:'Медленно, чувствуй пресс'},{n:'Обратные скручивания',s:'3×15',note:'Поясница прижата к полу'},{n:'Планка',s:'3×40 сек',note:''}]},
+        {day:'День 4',type:'Отдых',ex:[]},
+        {day:'День 5',type:'Всё тело',ex:[{n:'Выпады',s:'3×12 каж. ногу',note:'Колено не касается пола резко'},{n:'Тяга гантелей в наклоне',s:'3×12',note:'Спина параллельна полу'},{n:'Жим гантелей лёжа',s:'3×12',note:'Контроль движения'},{n:'Прыжки со скакалкой',s:'3×1 мин',note:''}]},
+        {day:'День 6',type:'Кардио',ex:[{n:'Езда на велосипеде / плавание',s:'40 мин',note:'Средний темп'},{n:'Растяжка',s:'10 мин',note:'После кардио'}]},
+        {day:'День 7',type:'Отдых / Восстановление',ex:[]},
+      ];
+    } else {
+      // Продвинутый уровень, похудение
+      days=[
+        {day:'День 1',type:'Ноги + Кардио',ex:[{n:'Приседания со штангой',s:'4×12',note:'Параллель или ниже'},{n:'Жим ногами',s:'3×15',note:'Широкая постановка'},{n:'Выпады с гантелями',s:'3×12',note:'Шаг вперёд'},{n:'Интервальное кардио',s:'15 мин HIIT',note:'20 сек бег + 40 сек ходьба'}]},
+        {day:'День 2',type:'Грудь + Трицепс',ex:[{n:'Жим штанги лёжа',s:'4×10',note:''},{n:'Жим гантелей на наклонной',s:'3×12',note:''},{n:'Отжимания на брусьях',s:'3×до отказа',note:''},{n:'Французский жим',s:'3×12',note:''}]},
+        {day:'День 3',type:'Кардио / Активный отдых',ex:[{n:'Ходьба или бег',s:'40–50 мин',note:'Пульс 120–140 уд/мин'},{n:'Растяжка',s:'10 мин',note:''}]},
+        {day:'День 4',type:'Спина + Бицепс',ex:[{n:'Подтягивания',s:'4×до отказа',note:'Можно с резинкой'},{n:'Тяга штанги в наклоне',s:'4×10',note:''},{n:'Тяга горизонтального блока',s:'3×12',note:''},{n:'Сгибания рук с гантелями',s:'3×12',note:''}]},
+        {day:'День 5',type:'Плечи + Пресс',ex:[{n:'Жим гантелей сидя',s:'4×12',note:''},{n:'Тяга штанги к подбородку',s:'3×12',note:''},{n:'Планка',s:'4×60 сек',note:''},{n:'Скручивания с весом',s:'3×20',note:''}]},
+        {day:'День 6',type:'Ноги + Кардио',ex:[{n:'Становая тяга',s:'4×8',note:'Держи спину прямой'},{n:'Болгарские сплит-приседы',s:'3×10',note:''},{n:'Икры стоя',s:'4×20',note:''},{n:'Степпер / эллипс',s:'20 мин',note:''}]},
+        {day:'День 7',type:'Отдых / Восстановление',ex:[]},
+      ];
+    }
+  } else if(u.goal==='gain'){
+    desc=`Программа на набор мышечной массы: сплит по группам мышц, акцент на базовых упражнениях с прогрессией нагрузки. Отдых между подходами 90–120 секунд.`;
+    days=[
+      {day:'День 1',type:'Грудь + Трицепс',ex:[{n:'Жим штанги лёжа',s:'4×8',note:'Главное базовое упражнение — работай с максимальным весом'},{n:'Жим гантелей на наклонной',s:'4×10',note:'Угол 30–45°'},{n:'Разводка гантелей',s:'3×12',note:'Небольшой изгиб в локтях'},{n:'Жим узким хватом',s:'3×10',note:''},{n:'Французский жим',s:'3×12',note:''}]},
+      {day:'День 2',type:'Спина + Бицепс',ex:[{n:'Становая тяга',s:'4×6',note:'Король упражнений — держи спину нейтральной'},{n:'Подтягивания',s:'4×до отказа',note:'С отягощением если более 12 повт.'},{n:'Тяга штанги в наклоне',s:'4×8',note:''},{n:'Тяга гантели одной рукой',s:'3×10',note:''},{n:'Сгибания рук',s:'4×12',note:''}]},
+      {day:'День 3',type:'Отдых / Лёгкое кардио',ex:[{n:'Ходьба',s:'30 мин',note:'Не интенсивно — восстановление'},{n:'Растяжка',s:'15 мин',note:''}]},
+      {day:'День 4',type:'Ноги',ex:[{n:'Приседания со штангой',s:'5×6',note:'Глубина — параллель или ниже'},{n:'Жим ногами',s:'4×10',note:''},{n:'Румынская тяга',s:'4×10',note:'Акцент на бицепс бедра'},{n:'Разгибания ног',s:'3×15',note:''},{n:'Икры стоя',s:'5×15',note:'Полная амплитуда'}]},
+      {day:'День 5',type:'Плечи + Трапеции',ex:[{n:'Жим штанги стоя',s:'4×8',note:'Базовое упражнение на плечи'},{n:'Жим гантелей сидя',s:'3×10',note:''},{n:'Разводка гантелей в стороны',s:'4×15',note:''},{n:'Тяга штанги к подбородку',s:'3×12',note:''},{n:'Шраги со штангой',s:'4×15',note:''}]},
+      {day:'День 6',type:'Грудь + Спина (тяжёлый)',ex:[{n:'Жим штанги лёжа',s:'5×5',note:'Максимальный рабочий вес'},{n:'Становая тяга',s:'3×5',note:''},{n:'Тяга горизонтального блока',s:'3×12',note:''},{n:'Жим гантелей на наклонной',s:'3×12',note:''}]},
+      {day:'День 7',type:'Отдых / Восстановление',ex:[]},
+    ];
+  } else {
+    // Поддержание
+    desc=`Программа для поддержания формы: баланс силовых и кардио нагрузок. Поддерживает мышечную массу и улучшает выносливость.`;
+    days=[
+      {day:'День 1',type:'Всё тело (силовая)',ex:[{n:'Приседания',s:'3×10',note:''},{n:'Жим лёжа',s:'3×10',note:''},{n:'Тяга штанги в наклоне',s:'3×10',note:''},{n:'Жим стоя',s:'3×10',note:''}]},
+      {day:'День 2',type:'Кардио',ex:[{n:'Бег или эллипс',s:'35–40 мин',note:'Пульс 130–150 уд/мин'},{n:'Растяжка',s:'10 мин',note:''}]},
+      {day:'День 3',type:'Отдых',ex:[]},
+      {day:'День 4',type:'Верх тела',ex:[{n:'Подтягивания',s:'3×10',note:''},{n:'Отжимания',s:'3×15',note:''},{n:'Сгибания рук',s:'3×12',note:''},{n:'Трицепс на блоке',s:'3×12',note:''}]},
+      {day:'День 5',type:'Ноги + Кардио',ex:[{n:'Приседания',s:'4×10',note:''},{n:'Выпады',s:'3×12',note:''},{n:'Икры',s:'3×20',note:''},{n:'Велотренажёр',s:'20 мин',note:''}]},
+      {day:'День 6',type:'Кардио / Активный отдых',ex:[{n:'Плавание / велосипед',s:'45 мин',note:'Средний темп'},{n:'Растяжка',s:'10 мин',note:''}]},
+      {day:'День 7',type:'Отдых / Восстановление',ex:[]},
+    ];
+  }
+
+  const html=`<div class="prog-desc"><strong>📋 О программе:</strong> ${desc}</div>`+
+    days.map(d=>`<div class="wcard">
+      <div class="wday">${d.day} — ${d.type}</div>
+      ${d.ex.length===0
+        ? '<div style="font-size:12px;color:var(--t3);padding:4px 0">Отдых и восстановление 🛌</div>'
+        : d.ex.map((e,i)=>`<div class="erow"><span class="enum">${i+1}</span><div class="ename">${e.n}<div class="enote">${e.note||''}</div></div><span class="esets">${e.s}</span></div>`).join('')}
+    </div>`).join('');
+
+  document.getElementById('wc').innerHTML=html;
+}
+</script>
+</body>
+</html>
